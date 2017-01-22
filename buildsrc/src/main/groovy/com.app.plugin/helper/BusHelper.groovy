@@ -70,7 +70,6 @@ public class BusHelper {
         }
 
         mBusInfo.clazz.writeFile(path)
-        mBusInfo.clazz.detach()//用完一定记得要卸载，否则pool里的永远是旧的代码，草这个问题折磨我半天
     }
 
     /**
@@ -80,7 +79,7 @@ public class BusHelper {
      */
     static String getRegisterEventMethodStr(BusInfo mBusInfo) {
         String CreateStr = "";
-        mBusInfo.clazz.addInterface(mBusInfo.clazz.classPool.get("com.base.Event"));//为当前的类添加时间处理的接口
+        mBusInfo.clazz.addInterface(mBusInfo.clazz.classPool.get("com.base.event.Event"));//为当前的类添加时间处理的接口
         for (int i = 0; i < mBusInfo.getMethods().size(); i++) {
             MethodInfo methodInfo = mBusInfo.getMethods().get(i).getMethodInfo();
             Annotation mAnnotation = mBusInfo.getAnnotations().get(i)
@@ -88,9 +87,12 @@ public class BusHelper {
             //获取注解属性
             javassist.bytecode.annotation.Annotation annotation = attribute.getAnnotation(mAnnotation.annotationType().canonicalName);
             //获取注解
-            int id = ((IntegerMemberValue) annotation.getMemberValue("tag")).getValue();//获取注解的值
+            int id = ((IntegerMemberValue) annotation.getMemberValue("value")).getValue();//获取注解的值
+            int thread = -1;
+            if (annotation.getMemberValue("thread") != null)
+                thread = ((IntegerMemberValue) annotation.getMemberValue("thread")).getValue();
             mBusInfo.eventIds.add(id)
-            CreateStr += "OkBus.getInstance().register(" + id + ",(Event)this );\n"
+            CreateStr += "OkBus.getInstance().register(" + id + ",(Event)this," + thread + ");\n"
         }
         initEventDispatch(mBusInfo)
         return CreateStr;

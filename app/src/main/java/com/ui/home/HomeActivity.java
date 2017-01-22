@@ -1,141 +1,112 @@
 package com.ui.home;
 
-import android.app.Activity;
-import android.content.Intent;
-import android.support.design.widget.FloatingActionButton;
+import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
-import android.support.design.widget.Snackbar;
-import android.support.design.widget.TabLayout;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.ActivityOptionsCompat;
-import android.support.v4.app.Fragment;
 import android.support.v4.view.GravityCompat;
-import android.support.v4.view.ViewPager;
-import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
-import android.support.v7.widget.Toolbar;
 import android.view.Gravity;
-import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.C;
+import com.app.annotation.apt.Router;
+import com.app.annotation.aspect.SingleClick;
+import com.apt.TRouter;
 import com.base.BaseActivity;
-import com.base.BaseListFragment;
-import com.base.util.ImageUtil;
+import com.base.entity.ExtraData;
+import com.base.util.BindingUtils;
 import com.base.util.SpUtil;
-import com.base.util.ToastUtil;
 import com.base.util.helper.FragmentAdapter;
-import com.data.entity._User;
-import com.ui.article.ArticleActivity;
-import com.ui.login.LoginActivity;
-import com.ui.main.AboutActivity;
+import com.base.util.helper.PagerChangeListener;
+import com.model._User;
 import com.ui.main.R;
-import com.ui.main.SettingsActivity;
-import com.ui.user.UserActivity;
-import com.view.viewholder.ArticleItemVH;
+import com.ui.main.TMVPFragment;
+import com.ui.main.databinding.ActivityMainBinding;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import butterknife.Bind;
 import rx.Observable;
 
-public class HomeActivity extends BaseActivity<HomePresenter, HomeModel> implements HomeContract.View {
-
-    @Bind(R.id.toolbar)
-    Toolbar toolbar;
-    @Bind(R.id.tabs)
-    TabLayout tabs;
-    @Bind(R.id.viewpager)
-    ViewPager viewpager;
-    @Bind(R.id.fab)
-    FloatingActionButton fab;
-    @Bind(R.id.nv_main_navigation)
-    NavigationView nvMainNavigation;
-    @Bind(R.id.dl_main_drawer)
-    DrawerLayout dlMainDrawer;
-    ImageView im_face;
-    TextView tv_name;
+@Router(C.HOME)
+public class HomeActivity extends BaseActivity<HomePresenter, ActivityMainBinding> implements HomeContract.View, NavigationView.OnNavigationItemSelectedListener, View.OnClickListener {
 
     @Override
     public int getLayoutId() {
         return R.layout.activity_main;
     }
 
-
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.menu_overaction, menu);
-        return true;
+    public int getMenuId() {
+        return R.menu.menu_overaction;
     }
 
     @Override
     public void onBackPressed() {
-        if (dlMainDrawer.isDrawerOpen(Gravity.LEFT)) dlMainDrawer.closeDrawers();
+        if (mViewBinding.dlMainDrawer.isDrawerOpen(Gravity.LEFT))
+            mViewBinding.dlMainDrawer.closeDrawers();
         else super.onBackPressed();
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == R.id.action_settings)
-            startActivity(new Intent(mContext, AboutActivity.class));
+        if (item.getItemId() == R.id.action_settings) TRouter.go(C.ABOUT);
+        else if (item.getItemId() == R.id.action_feedback) TRouter.go(C.ADVISE);
+        else if (item.getItemId() == R.id.action_about)
+            TMVPFragment.getInstance().start(getSupportFragmentManager());
         else if (item.getItemId() == android.R.id.home)
-            dlMainDrawer.openDrawer(GravityCompat.START);
-        return super.onOptionsItemSelected(item);
+            mViewBinding.dlMainDrawer.openDrawer(GravityCompat.START);
+        return true;
     }
-
 
     @Override
     public void initView() {
-        setSupportActionBar(toolbar);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        ActionBarDrawerToggle mDrawerToggle = new ActionBarDrawerToggle(this, dlMainDrawer, R.string.drawer_open, R.string.drawer_close);
+        ActionBarDrawerToggle mDrawerToggle = new ActionBarDrawerToggle(this, mViewBinding.dlMainDrawer, R.string.drawer_open, R.string.drawer_close);
         mDrawerToggle.syncState();
-        dlMainDrawer.setDrawerListener(mDrawerToggle);
-
-        fab.setOnClickListener(v -> Snackbar.make(v, "Snackbar comes out", Snackbar.LENGTH_LONG).setAction("action", vi -> ToastUtil.show("ok")).show());
-        View headerView = nvMainNavigation.inflateHeaderView(R.layout.nav_header_main);
-        im_face = (ImageView) headerView.findViewById(R.id.im_face);
-        tv_name = (TextView) headerView.findViewById(R.id.tv_name);
-
-        nvMainNavigation.setNavigationItemSelectedListener(item -> {
-            item.setChecked(true);
-            dlMainDrawer.closeDrawers();
-            switch (item.getItemId()) {
-                case R.id.nav_manage:
-                    startActivity(new Intent(mContext, SettingsActivity.class));
-                    break;
-                case R.id.nav_share:
-                    startActivity(new Intent(mContext, LoginActivity.class));
-                    break;
-                case R.id.nav_send:
-                    SpUtil.setNight(mContext, !SpUtil.isNight());
-                    break;
-            }
-            return true;
-        });
+        mViewBinding.dlMainDrawer.addDrawerListener(mDrawerToggle);
+        mViewBinding.nvMainNavigation.setNavigationItemSelectedListener(this);
     }
 
     @Override
     public void showTabList(String[] mTabs) {
-        List<Fragment> fragments = new ArrayList<>();
-        Observable.from(mTabs).subscribe(tab -> fragments.add(BaseListFragment.newInstance(ArticleItemVH.class, tab)));
-        viewpager.setAdapter(new FragmentAdapter(getSupportFragmentManager(), fragments, Arrays.asList(mTabs)));
-        tabs.setupWithViewPager(viewpager);
-        tabs.setTabsFromPagerAdapter(viewpager.getAdapter());
+        Observable.from(mTabs).map(ArticleFragment::newInstance).toList()
+                .map(fragments -> FragmentAdapter.newInstance(getSupportFragmentManager(), fragments, mTabs))
+                .subscribe(mFragmentAdapter -> mViewBinding.viewpager.setAdapter(mFragmentAdapter));
+        PagerChangeListener mPagerChangeListener = PagerChangeListener.newInstance(mViewBinding.collapsingToolbar, mViewBinding.toolbarIvTarget, mViewBinding.toolbarIvOutgoing);
+        mViewBinding.viewpager.addOnPageChangeListener(mPagerChangeListener);
+        mViewBinding.tabs.setupWithViewPager(mViewBinding.viewpager);
     }
 
     @Override
     public void initUserInfo(_User user) {
-        ImageUtil.loadRoundImg(im_face, user.face);
+        View mHeaderView = mViewBinding.nvMainNavigation.getHeaderView(0);
+        ImageView im_face = (ImageView) mHeaderView.findViewById(R.id.im_face);
+        TextView tv_name = (TextView) mHeaderView.findViewById(R.id.tv_name);
+        BindingUtils.loadRoundImg(im_face, user.face);
         tv_name.setText(user.username);
-        im_face.setOnClickListener(v ->
-                ActivityCompat.startActivity((Activity) mContext, new Intent(mContext, UserActivity.class).putExtra(C.HEAD_DATA, user)
-                        , ActivityOptionsCompat.makeSceneTransitionAnimation((Activity) mContext, im_face, ArticleActivity.TRANSLATE_VIEW).toBundle())
-        );
+    }
+
+    @Override
+    public void onOpenRelease() {
+        mViewBinding.viewpager.setCurrentItem(0);
+    }
+
+    @Override
+    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+        if (item.getItemId() == R.id.nav_manage) TRouter.go(C.SETTING);
+        else if (item.getItemId() == R.id.nav_share) TRouter.go(C.LOGIN);
+        else if (item.getItemId() == R.id.nav_theme) SpUtil.setNight(mContext, !SpUtil.isNight());
+        return true;
+    }
+
+    @SingleClick
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.im_face:
+                TRouter.go(C.USER_INFO, new ExtraData(C.HEAD_DATA, SpUtil.getUser()).build(), v);
+                break;
+            case R.id.fab:
+                TRouter.go(C.USER_RELEASE, new ExtraData(C.HEAD_DATA, SpUtil.getUser()).build(), v);
+                break;
+        }
     }
 }

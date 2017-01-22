@@ -16,7 +16,7 @@ import static javax.lang.model.element.Modifier.PUBLIC;
  * Created by baixiaokang on 16/8/3.
  */
 public class Utils {
-
+    public static final String PackageName = "com.apt";
     public static final String ANNOTATION = "@";
 
 
@@ -61,4 +61,8 @@ public class Utils {
         return ClassName.get(typeElement).simpleName();
     }
 
+    public static ClassName getType(String className) {
+        return ClassName.get(className.substring(0, className.lastIndexOf(".")),
+                className.substring(className.lastIndexOf(".") + 1, className.length()));
+    }
 }

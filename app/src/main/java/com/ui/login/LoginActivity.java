@@ -1,33 +1,23 @@
 package com.ui.login;
 
 import android.content.Intent;
-import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
-import android.support.design.widget.TextInputLayout;
 import android.text.TextUtils;
-import android.widget.TextView;
+import android.view.View;
 
+import com.C;
+import com.app.annotation.apt.Router;
 import com.base.BaseActivity;
 import com.ui.home.HomeActivity;
-import com.ui.login.LoginContract.View;
 import com.ui.main.R;
-
-import butterknife.Bind;
+import com.ui.main.databinding.ActivityLoginBinding;
 
 /**
  * Created by Administrator on 2016/1/14.
  */
-public class LoginActivity extends BaseActivity<LoginPresenter, LoginModel> implements View {
-    @Bind(R.id.fab)
-    FloatingActionButton fab;
-    @Bind(R.id.tl_name)
-    TextInputLayout tlName;
-    @Bind(R.id.tl_pass)
-    TextInputLayout tlPass;
-    @Bind(R.id.tv_sign)
-    TextView tv_sign;
-    @Bind(R.id.tv_title)
-    TextView tv_title;
+
+@Router(C.LOGIN)
+public class LoginActivity extends BaseActivity<LoginPresenter, ActivityLoginBinding> implements LoginContract.View {
     boolean isLogin = true;
 
     @Override
@@ -37,29 +27,22 @@ public class LoginActivity extends BaseActivity<LoginPresenter, LoginModel> impl
 
     @Override
     public void initView() {
-        fab.setOnClickListener(v -> {
-            String name = tlName.getEditText().getText().toString();
-            String pass = tlPass.getEditText().getText().toString();
-            String msg = TextUtils.isEmpty(name) ? "用户名不能为空!" : TextUtils.isEmpty(pass) ? "密码不能为空!" : "";
-            if (!TextUtils.isEmpty(msg)) showMsg(msg);
-            else if (isLogin) mPresenter.login(name, pass);
-            else mPresenter.sign(name, pass);
-        });
-        tv_sign.setOnClickListener(v -> swich());
-    }
-
-    private void swich() {
-        if (isLogin) {
+        mViewBinding.fab.setOnClickListener(v -> doAction());
+        mViewBinding.tvSign.setOnClickListener(v -> {
             isLogin = false;
-            tv_title.setText("注册");
-            tv_sign.setText("去登录");
-        } else {
-            isLogin = true;
-            tv_title.setText("登录");
-            tv_sign.setText("去注册");
-        }
+            mViewBinding.tvTitle.setText("注册");
+            mViewBinding.tvSign.setVisibility(View.GONE);
+        });
     }
 
+    private void doAction() {
+        String name = mViewBinding.tlName.getEditText().getText().toString();
+        String pass = mViewBinding.tlPass.getEditText().getText().toString();
+        String msg = TextUtils.isEmpty(name) ? "用户名不能为空!" : TextUtils.isEmpty(pass) ? "密码不能为空!" : "";
+        if (!TextUtils.isEmpty(msg)) showMsg(msg);
+        else if (isLogin) mPresenter.login(name, pass);
+        else mPresenter.sign(name, pass);
+    }
 
     @Override
     public void loginSuccess() {
@@ -68,11 +51,12 @@ public class LoginActivity extends BaseActivity<LoginPresenter, LoginModel> impl
 
     @Override
     public void signSuccess() {
-        swich();
+        isLogin = true;
+        doAction();
     }
 
     @Override
     public void showMsg(String msg) {
-        Snackbar.make(fab, msg, Snackbar.LENGTH_LONG).show();
+        Snackbar.make(mViewBinding.fab, msg, Snackbar.LENGTH_LONG).show();
     }
 }

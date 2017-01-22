@@ -1,21 +1,19 @@
 package com.ui.home;
 
-import com.C;
 import com.EventTags;
-import com.app.annotation.apt.Instance;
+import com.app.annotation.apt.InstanceFactory;
 import com.app.annotation.javassist.Bus;
 import com.app.annotation.javassist.BusRegister;
 import com.app.annotation.javassist.BusUnRegister;
-import com.base.OkBus;
+import com.base.event.OkBus;
 import com.base.util.SpUtil;
-import com.data.entity._User;
+import com.model._User;
 
 /**
  * Created by baixiaokang on 16/4/22.
  */
-@Instance
+@InstanceFactory
 public class HomePresenter extends HomeContract.Presenter {
-
 
     @Override
     public void getUserInfo() {
@@ -29,15 +27,15 @@ public class HomePresenter extends HomeContract.Presenter {
         initEvent();
         getTabList();
         getUserInfo();
-        mRxManager.on(C.EVENT_LOGIN, arg -> mView.initUserInfo((_User) arg));
     }
 
     @Override
     public void getTabList() {
-        OkBus.getInstance().onEvent(EventTags.SHOW_TAB_LIST, mModel.getTabs());
+        String[] mTabs = {"公开", "民谣", "摇滚", "电子", "流行", "爵士", "独立", "故事", "新世纪", "精品推荐", "原声"};
+        OkBus.getInstance().onEvent(EventTags.SHOW_TAB_LIST, mTabs);
     }
 
-    @Bus(tag = EventTags.SHOW_TAB_LIST)
+    @Bus(EventTags.SHOW_TAB_LIST)
     public void showTabList(String[] tabs) {
         mView.showTabList(tabs);
     }
@@ -46,7 +44,16 @@ public class HomePresenter extends HomeContract.Presenter {
     private void initEvent() {
     }
 
-    @Override
+    @Bus(EventTags.ON_RELEASE_OPEN)
+    public void onRelease() {
+        mView.onOpenRelease();
+    }
+
+    @Bus(EventTags.ON_USER_LOGIN)
+    public void OnLogin(_User user) {
+        mView.initUserInfo(user);
+    }
+
     @BusUnRegister
     public void onDetached() {
         super.onDetached();

@@ -4,6 +4,7 @@ package com.api;
 import android.util.Log;
 
 import com.App;
+import com.C;
 import com.base.util.NetWorkUtil;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -27,27 +28,27 @@ import retrofit2.converter.gson.GsonConverterFactory;
  * Created by baixiaokang on 16/3/9.
  */
 public class Api {
-
-    public static final String X_LC_Id = "i7j2k7bm26g7csk7uuegxlvfyw79gkk4p200geei8jmaevmx";
-    public static final String X_LC_Key = "n6elpebcs84yjeaj5ht7x0eii9z83iea8bec9szerejj7zy3";
-    public static final String BASE_URL = "https://leancloud.cn:443/1.1/";
-
-    public static final int DEFAULT_TIMEOUT = 5;
-
     public Retrofit retrofit;
     public ApiService service;
 
-    Interceptor mInterceptor = (chain) -> chain.proceed(chain.request().newBuilder()
-            .addHeader("X-LC-Id", X_LC_Id)
-            .addHeader("X-LC-Key", X_LC_Key)
+    private static class SingletonHolder {
+        private static final Api INSTANCE = new Api();
+    }
+
+    public static Api getInstance() {
+        return SingletonHolder.INSTANCE;
+    }
+
+    Interceptor headInterceptor = (chain) -> chain.proceed(chain.request().newBuilder()
+            .addHeader("X-LC-Id", C.X_LC_Id)
+            .addHeader("X-LC-Key", C.X_LC_Key)
             .addHeader("Content-Type", "application/json")
             .build());
 
-
     //构造方法私有
     private Api() {
-        HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
-        interceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
+        HttpLoggingInterceptor logInterceptor = new HttpLoggingInterceptor();
+        logInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
 
         File cacheFile = new File(App.getAppContext().getCacheDir(), "cache");
         Cache cache = new Cache(cacheFile, 1024 * 1024 * 100); //100Mb
@@ -55,12 +56,11 @@ public class Api {
         OkHttpClient okHttpClient = new OkHttpClient.Builder()
                 .readTimeout(7676, TimeUnit.MILLISECONDS)
                 .connectTimeout(7676, TimeUnit.MILLISECONDS)
-                .addInterceptor(mInterceptor)
-                .addInterceptor(interceptor)
+                .addInterceptor(headInterceptor)
+                .addInterceptor(logInterceptor)
                 .addNetworkInterceptor(new HttpCacheInterceptor())
                 .cache(cache)
                 .build();
-
 
         Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").serializeNulls().create();
 
@@ -68,21 +68,10 @@ public class Api {
                 .client(okHttpClient)
                 .addConverterFactory(GsonConverterFactory.create(gson))
                 .addCallAdapterFactory(RxJavaCallAdapterFactory.create())
-                .baseUrl(BASE_URL)
+                .baseUrl(C.BASE_URL)
                 .build();
         service = retrofit.create(ApiService.class);
     }
-
-    //在访问HttpMethods时创建单例
-    private static class SingletonHolder {
-        private static final Api INSTANCE = new Api();
-    }
-
-    //获取单例
-    public static Api getInstance() {
-        return SingletonHolder.INSTANCE;
-    }
-
 
     class HttpCacheInterceptor implements Interceptor {
 

@@ -5,7 +5,7 @@ import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 
 import com.base.BaseActivity;
-import com.data.entity._User;
+import com.model._User;
 import com.google.gson.Gson;
 
 /**
@@ -13,6 +13,10 @@ import com.google.gson.Gson;
  */
 public class SpUtil {
     static SharedPreferences prefs;
+
+    public static String getDataByKey(String key) {
+        return prefs.getString(key, "");
+    }
 
     public static void init(Context context) {
         prefs = PreferenceManager.getDefaultSharedPreferences(context);
